@@ -1,0 +1,329 @@
+services:
+  # ─── PostgreSQL: Auth Service ───────────────────────────────────────────────
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    command: >
+      postgres
+        -c wal_level=logical
+        -c max_replication_slots=4
+        -c max_wal_senders=4
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── PostgreSQL: Event Service ──────────────────────────────────────────────
+  postgres-event:
+    image: postgres:16-alpine
+    container_name: postgres-event
+    environment:
+      POSTGRES_DB: event_db
+      POSTGRES_USER: event_user
+      POSTGRES_PASSWORD: event_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_event_data:/var/lib/postgresql/data
+    command: >
+      postgres
+        -c wal_level=logical
+        -c max_replication_slots=4
+        -c max_wal_senders=4
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U event_user -d event_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── PostgreSQL: Booking Service ────────────────────────────────────────────
+  postgres-booking:
+    image: postgres:16-alpine
+    container_name: postgres-booking
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: booking_user
+      POSTGRES_PASSWORD: booking_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_booking_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking_user -d booking_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Zookeeper ──────────────────────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "bash", "-c", "cub zk-ready localhost:2181 10 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 15s
+      retries: 10
+      start_period: 30s
+
+  # ─── Kafka ──────────────────────────────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "bash", "-c", "cub kafka-ready -b localhost:9092 1 10 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 15s
+      retries: 15
+      start_period: 60s
+
+  # ─── Elasticsearch ──────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qv '\"status\":\"red\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  # ─── Debezium Kafka Connect ─────────────────────────────────────────────────
+  debezium:
+    image: debezium/connect:2.6
+    container_name: debezium
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-event:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: debezium-connect
+      CONFIG_STORAGE_TOPIC: debezium.configs
+      OFFSET_STORAGE_TOPIC: debezium.offsets
+      STATUS_STORAGE_TOPIC: debezium.statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  # ─── MinIO ──────────────────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── MinIO Init: criar bucket ticketify-media ────────────────────────────────
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/ticketify-media &&
+        mc anonymous set download local/ticketify-media &&
+        echo 'Bucket ticketify-media criado com sucesso'
+      "
+    restart: on-failure
+
+  # ─── Jaeger (All-in-one) ────────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "14268:14268"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:16686/ > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Kong Database ──────────────────────────────────────────────────────────
+  postgres-kong:
+    image: postgres:16-alpine
+    container_name: postgres-kong
+    environment:
+      POSTGRES_DB: kong_db
+      POSTGRES_USER: kong_user
+      POSTGRES_PASSWORD: kong_pass
+    volumes:
+      - postgres_kong_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong_user -d kong_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Kong Migrations ────────────────────────────────────────────────────────
+  # Usa a imagem base (sem plugin customizado) só para rodar as migrations
+  kong-migrations:
+    image: kong:3.7-ubuntu
+    container_name: kong-migrations
+    depends_on:
+      postgres-kong:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres-kong
+      KONG_PG_DATABASE: kong_db
+      KONG_PG_USER: kong_user
+      KONG_PG_PASSWORD: kong_pass
+    command: kong migrations bootstrap
+    restart: on-failure
+
+  # ─── Kong API Gateway ───────────────────────────────────────────────────────
+  kong:
+    build:
+      context: ../kong
+      dockerfile: Dockerfile
+    image: ticketify-kong:latest
+    pull_policy: build
+    container_name: kong
+    depends_on:
+      postgres-kong:
+        condition: service_healthy
+      kong-migrations:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+      - "8443:8443"
+      - "8444:8444"
+    volumes:
+      - ../kong/kong.yml:/etc/kong/kong.yml:ro
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres-kong
+      KONG_PG_DATABASE: kong_db
+      KONG_PG_USER: kong_user
+      KONG_PG_PASSWORD: kong_pass
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+      KONG_PLUGINS: bundled,jwt-claims-injector
+    healthcheck:
+      test: ["CMD-SHELL", "kong health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ─── Kong Deck: aplica kong.yml via Admin API após Kong subir ────────────────
+  kong-deck:
+    image: kong/deck:v1.40.3
+    container_name: kong-deck
+    depends_on:
+      kong:
+        condition: service_healthy
+    volumes:
+      - ../kong/kong.yml:/etc/kong/kong.yml:ro
+    command: >
+      gateway sync /etc/kong/kong.yml
+        --kong-addr http://kong:8001
+        --skip-ca-certificates
+    restart: on-failure
+
+volumes:
+  postgres_auth_data:
+  postgres_event_data:
+  postgres_booking_data:
+  postgres_kong_data:
+  redis_data:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:
+  elasticsearch_data:
+  minio_data:
+
+networks:
+  default:
+    name: ticketify-network
