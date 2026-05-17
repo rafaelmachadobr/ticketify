@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: auth_user
       POSTGRES_PASSWORD: auth_pass
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_auth_data:/var/lib/postgresql/data
     command: >
@@ -296,6 +296,33 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # ─── Auth Service (NestJS) ──────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ../../apps/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres-auth
+      DB_PORT: 5432
+      DB_NAME: auth_db
+      DB_USER: auth_user
+      DB_PASS: auth_pass
+      JWT_PRIVATE_KEY_PATH: ./keys/private.pem
+      JWT_PUBLIC_KEY_PATH: ./keys/public.pem
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: "7"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: auth-service
+    restart: unless-stopped
 
   # ─── Kong Deck: aplica kong.yml via Admin API após Kong subir ────────────────
   kong-deck:
