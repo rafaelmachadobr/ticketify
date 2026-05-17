@@ -1,0 +1,103 @@
+### Auth Service — REST Client
+### Extensão: REST Client (VS Code) | HTTP Client (JetBrains)
+
+@base = http://localhost:3001
+@kong = http://localhost:8000
+
+@email = teste@ticketify.com
+@password = senha12345
+@name = Rafael Teste
+
+### Após login, cole os tokens abaixo:
+@accessToken = SEU_ACCESS_TOKEN_AQUI
+@refreshToken = SEU_REFRESH_TOKEN_AQUI
+
+
+### ─── Registro ───────────────────────────────────────────────────────────────
+
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "{{name}}",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+
+### ─── Login ───────────────────────────────────────────────────────────────────
+
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+
+### ─── Meu perfil ──────────────────────────────────────────────────────────────
+
+GET {{base}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+###
+
+### ─── Atualizar perfil ────────────────────────────────────────────────────────
+
+PATCH {{base}}/auth/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Nome Atualizado"
+}
+
+###
+
+### ─── Refresh token ───────────────────────────────────────────────────────────
+
+POST {{base}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### ─── Logout ──────────────────────────────────────────────────────────────────
+
+POST {{base}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### ─── JWKS (chave pública RS256) ─────────────────────────────────────────────
+
+GET {{base}}/auth/.well-known/jwks.json
+
+###
+
+### ─── Via Kong (porta 8000) ──────────────────────────────────────────────────
+
+POST {{kong}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+
+GET {{kong}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+###
