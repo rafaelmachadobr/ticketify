@@ -1,0 +1,65 @@
+_format_version: "3.0"
+_transform: true
+
+# ─── Serviços ────────────────────────────────────────────────────────────────
+# Nota: os upstreams apontam para os containers dos microserviços.
+# Enquanto os serviços não estão rodando, o Kong retornará 502 nas rotas,
+# mas os plugins (rate-limiting, OpenTelemetry) são aplicados corretamente.
+
+services:
+  - name: auth-service
+    url: http://auth-service:3001
+    routes:
+      - name: auth-routes
+        paths:
+          - /auth
+        strip_path: false
+
+  - name: event-service
+    url: http://event-service:8080
+    routes:
+      - name: event-routes
+        paths:
+          - /events
+        strip_path: false
+      - name: event-admin-routes
+        paths:
+          - /admin/events
+        strip_path: false
+
+  - name: booking-service
+    url: http://booking-service:3003
+    routes:
+      - name: booking-routes
+        paths:
+          - /bookings
+        strip_path: false
+
+  - name: search-service
+    url: http://search-service:8000
+    routes:
+      - name: search-routes
+        paths:
+          - /search
+        strip_path: false
+
+# ─── Plugins Globais ─────────────────────────────────────────────────────────
+
+plugins:
+  # Rate limiting global: 100 req/min por IP (anônimos)
+  - name: rate-limiting
+    config:
+      minute: 100
+      policy: local
+      limit_by: ip
+      error_code: 429
+      error_message: "Taxa de requisições excedida."
+
+  # OpenTelemetry: Kong → Jaeger
+  - name: opentelemetry
+    config:
+      endpoint: http://jaeger:4318/v1/traces
+      resource_attributes:
+        service.name: kong-gateway
+      propagation:
+        default_format: w3c
