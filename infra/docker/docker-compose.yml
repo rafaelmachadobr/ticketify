@@ -142,6 +142,23 @@ services:
       timeout: 10s
       retries: 10
 
+  # ─── Kibana ─────────────────────────────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status | grep -q 'available'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
   # ─── Debezium Kafka Connect ─────────────────────────────────────────────────
   debezium:
     image: debezium/connect:2.6
@@ -322,6 +339,26 @@ services:
       JWT_REFRESH_EXPIRES_IN: "7"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: auth-service
+    restart: unless-stopped
+
+  # ─── Search Service ─────────────────────────────────────────────────────────
+  search-service:
+    build:
+      context: ../../apps/search-service
+      dockerfile: Dockerfile
+    image: ticketify-search-service:latest
+    pull_policy: build
+    container_name: search-service
+    ports:
+      - "8010:8000"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX: events
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      SERVICE_NAME: search-service
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
     restart: unless-stopped
 
   # ─── Kong Deck: aplica kong.yml via Admin API após Kong subir ────────────────

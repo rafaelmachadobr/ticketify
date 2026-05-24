@@ -1,0 +1,56 @@
+### Variáveis
+@base = http://localhost:8010
+@kong = http://localhost:8000
+
+### ─── Health ─────────────────────────────────────────────────────────────────
+
+### Health check
+GET {{base}}/health
+
+### ─── Search ─────────────────────────────────────────────────────────────────
+
+### Busca geral sem filtros
+GET {{base}}/search?q=
+
+### Busca por texto
+GET {{base}}/search?q=Coldplay
+
+### Busca com erro de digitação (fuzzy)
+GET {{base}}/search?q=Coldpaly
+
+### Busca com stemming
+GET {{base}}/search?q=musical
+
+### Busca filtrada por cidade
+GET {{base}}/search?q=show&city=São Paulo
+
+### Busca filtrada por categoria
+GET {{base}}/search?q=&category=Teatro
+
+### Busca filtrada por período de datas
+GET {{base}}/search?q=festival&date_from=2026-07-01&date_to=2026-12-31
+
+### Busca com paginação — página 1
+GET {{base}}/search?q=&page=1&limit=5
+
+### Busca com paginação — página 2
+GET {{base}}/search?q=&page=2&limit=5
+
+### ─── Autocomplete ───────────────────────────────────────────────────────────
+
+### Autocomplete — prefixo "Col"
+GET {{base}}/search/autocomplete?q=Col
+
+### Autocomplete — prefixo "Rock"
+GET {{base}}/search/autocomplete?q=Rock
+
+### Autocomplete — sem resultado
+GET {{base}}/search/autocomplete?q=zzzzz
+
+### ─── Via Kong ───────────────────────────────────────────────────────────────
+
+### Busca via Kong
+GET {{kong}}/search?q=Coldplay
+
+### Autocomplete via Kong
+GET {{kong}}/search/autocomplete?q=Col
