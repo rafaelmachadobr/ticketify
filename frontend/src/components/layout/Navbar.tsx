@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
 
 export function Navbar() {
-  const { user, loading, logout } = useAuth()
+  const { user, logout } = useAuth()
   const router = useRouter()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -53,9 +53,7 @@ export function Navbar() {
 
         {/* Controles à direita */}
         <div className="flex items-center gap-2 shrink-0">
-          {loading ? (
-            <div className="w-24 h-8 rounded-[8px] bg-[#f3f4f6] animate-pulse" />
-          ) : user ? (
+          {user ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen((o) => !o)}
