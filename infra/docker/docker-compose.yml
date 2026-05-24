@@ -481,6 +481,8 @@ services:
       KAFKA_TOPIC_EVENTS: db.public.events
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_SERVICE_NAME: cdc-service
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
     restart: unless-stopped
 
   # ─── Frontend (Next.js) ─────────────────────────────────────────────────────
