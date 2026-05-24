@@ -27,6 +27,7 @@ async def search(
                 "query": q,
                 "fields": ["title^3", "description", "venue"],
                 "fuzziness": "AUTO",
+                "operator": "and",
             }
         })
     else:
