@@ -92,7 +92,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {events.map((event) => (
+                {events.map((event: ReturnType<typeof mapApiEvent>) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </div>

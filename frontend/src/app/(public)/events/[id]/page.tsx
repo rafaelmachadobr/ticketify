@@ -1,36 +1,53 @@
-import { notFound } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, Calendar, Clock, MapPin, Share2, Heart, ShieldCheck } from "lucide-react"
-import { mapApiEvent, formatDateLong, formatTime, formatCurrency } from "@/lib/utils"
+import {
+  formatCurrency,
+  formatDateLong,
+  formatTime,
+  mapApiEvent,
+} from "@/lib/utils";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Heart,
+  MapPin,
+  Share2,
+  ShieldCheck,
+} from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-const EVENT_SERVICE = process.env.EVENT_SERVICE_URL ?? "http://localhost:8080"
+const EVENT_SERVICE = process.env.EVENT_SERVICE_URL ?? "http://localhost:8080";
 
 async function getEvent(id: string) {
   try {
     const res = await fetch(`${EVENT_SERVICE}/api/events/${id}`, {
       next: { revalidate: 300 },
-    })
-    if (res.status === 404) return null
-    if (!res.ok) return null
-    const data = await res.json()
-    return data
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data;
   } catch {
-    return null
+    return null;
   }
 }
 
 export default async function EventDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = await params
-  const raw = await getEvent(id)
-  if (!raw) notFound()
+  const { id } = await params;
+  const raw = await getEvent(id);
+  if (!raw) notFound();
 
-  const event = mapApiEvent(raw)
-  const sections: { id: string; name: string; price: number; capacity: number }[] =
-    raw.seat_sections ?? []
+  const event = mapApiEvent(raw);
+  const sections: {
+    id: string;
+    name: string;
+    price: number;
+    capacity: number;
+  }[] = raw.seat_sections ?? [];
 
   return (
     <div className="min-h-screen bg-[#f3f4f6]">
@@ -107,7 +124,9 @@ export default async function EventDetailPage({
             value={
               <>
                 <span className="block">{event.venue}</span>
-                <span className="block text-xs text-[#9ca3af]">{event.city}</span>
+                <span className="block text-xs text-[#9ca3af]">
+                  {event.city}
+                </span>
               </>
             }
           />
@@ -118,7 +137,9 @@ export default async function EventDetailPage({
           {/* Descrição */}
           <div className="flex-1 min-w-0">
             <div className="bg-white rounded-[8px] border border-[#e5e7eb] p-6">
-              <h2 className="text-lg font-bold text-[#111827] mb-4">Sobre o Evento</h2>
+              <h2 className="text-lg font-bold text-[#111827] mb-4">
+                Sobre o Evento
+              </h2>
               {event.description ? (
                 <p className="text-[#374151] leading-relaxed whitespace-pre-line">
                   {event.description}
@@ -139,7 +160,9 @@ export default async function EventDetailPage({
 
               {sections.length > 0 && (
                 <div className="space-y-2 mb-5">
-                  <p className="text-sm font-semibold text-[#374151]">Setores</p>
+                  <p className="text-sm font-semibold text-[#374151]">
+                    Setores
+                  </p>
                   {sections.map((section) => (
                     <div
                       key={section.id}
@@ -170,7 +193,7 @@ export default async function EventDetailPage({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function InfoCard({
@@ -178,17 +201,19 @@ function InfoCard({
   label,
   value,
 }: {
-  icon: React.ReactNode
-  label: string
-  value: React.ReactNode
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
 }) {
   return (
     <div className="bg-white rounded-[8px] border border-[#e5e7eb] p-4 flex items-start gap-3">
       <div className="mt-0.5">{icon}</div>
       <div>
-        <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wide mb-1">
+          {label}
+        </p>
         <div className="text-sm font-medium text-[#111827]">{value}</div>
       </div>
     </div>
-  )
+  );
 }

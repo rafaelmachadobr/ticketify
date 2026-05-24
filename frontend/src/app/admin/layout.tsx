@@ -1,3 +1,4 @@
+import { Footer } from "@/components/layout/Footer";
 import { LayoutDashboard, LogOut, Ticket } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -31,9 +32,9 @@ export default async function AdminLayout({
   if (user.role !== "admin") redirect("/");
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-[#e5e7eb] flex flex-col">
+      <aside className="w-56 bg-white border-r border-[#e5e7eb] flex flex-col shrink-0">
         <div className="p-4 border-b border-[#e5e7eb]">
           <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wide">
             Admin
@@ -66,7 +67,10 @@ export default async function AdminLayout({
       </aside>
 
       {/* Content */}
-      <main className="flex-1 bg-[#f3f4f6] p-6 overflow-auto">{children}</main>
+      <main className="flex-1 bg-[#f3f4f6] overflow-y-auto flex flex-col">
+        <div className="flex-1 p-6">{children}</div>
+        <Footer />
+      </main>
     </div>
   );
 }
