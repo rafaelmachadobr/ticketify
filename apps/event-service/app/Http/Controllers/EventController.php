@@ -56,18 +56,23 @@ class EventController extends Controller
     {
         $cacheKey = "events:detail:{$id}";
 
-        $event = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($id) {
-            return Event::with(['seatSections'])
+        $data = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($id) {
+            $event = Event::with(['seatSections'])
                 ->where('published', true)
                 ->find($id);
+
+            if (! $event) {
+                return null;
+            }
+
+            $data = $event->toArray();
+            $data['available_seats'] = $event->seats()->where('status', 'available')->count();
+            return $data;
         });
 
-        if (! $event) {
+        if (! $data) {
             return response()->json(['message' => 'Event not found'], 404);
         }
-
-        $data             = $event->toArray();
-        $data['available_seats'] = $event->seats()->where('status', 'available')->count();
 
         return response()->json($data);
     }
@@ -133,6 +138,17 @@ class EventController extends Controller
         return response()->json($event, 201);
     }
 
+    private function clearEventCaches(string $id): void
+    {
+        Cache::forget("events:detail:{$id}");
+
+        $prefix = config('cache.prefix');
+        $keys = \Illuminate\Support\Facades\Redis::keys("{$prefix}:events:list:*");
+        if ($keys) {
+            \Illuminate\Support\Facades\Redis::del($keys);
+        }
+    }
+
     // PUT /events/:id (admin)
     public function update(Request $request, string $id): JsonResponse
     {
@@ -155,7 +171,7 @@ class EventController extends Controller
 
         $event->update($validated);
 
-        Cache::forget("events:detail:{$id}");
+        $this->clearEventCaches($id);
 
         return response()->json($event->fresh('seatSections'));
     }
@@ -170,7 +186,7 @@ class EventController extends Controller
 
         $event->delete();
 
-        Cache::forget("events:detail:{$id}");
+        $this->clearEventCaches($id);
 
         return response()->json(null, 204);
     }
@@ -189,7 +205,7 @@ class EventController extends Controller
         $url  = Storage::disk('s3')->url($path);
 
         $event->update(['image_url' => $url]);
-        Cache::forget("events:detail:{$id}");
+        $this->clearEventCaches($id);
 
         return response()->json(['image_url' => $url]);
     }
