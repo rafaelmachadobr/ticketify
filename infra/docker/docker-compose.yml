@@ -88,7 +88,13 @@ services:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_log:/var/lib/zookeeper/log
     healthcheck:
-      test: ["CMD", "bash", "-c", "cub zk-ready localhost:2181 10 2>/dev/null || exit 1"]
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "cub zk-ready localhost:2181 10 2>/dev/null || exit 1",
+        ]
       interval: 15s
       timeout: 15s
       retries: 10
@@ -116,7 +122,13 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "bash", "-c", "cub kafka-ready -b localhost:9092 1 10 2>/dev/null || exit 1"]
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "cub kafka-ready -b localhost:9092 1 10 2>/dev/null || exit 1",
+        ]
       interval: 15s
       timeout: 15s
       retries: 15
@@ -137,7 +149,11 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qv '\"status\":\"red\"'"]
+      test:
+        [
+          "CMD-SHELL",
+          'curl -sf http://localhost:9200/_cluster/health | grep -qv ''"status":"red"''',
+        ]
       interval: 20s
       timeout: 10s
       retries: 10
@@ -154,7 +170,11 @@ services:
       elasticsearch:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status | grep -q 'available'"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:5601/api/status | grep -q 'available'",
+        ]
       interval: 20s
       timeout: 10s
       retries: 10
@@ -166,7 +186,12 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-    entrypoint: ["/bin/bash", "-c", "kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic db.public.events --partitions 1 --replication-factor 1 && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ticketify.bookings --partitions 1 --replication-factor 1 && echo 'Topicos criados com sucesso'"]
+    entrypoint:
+      [
+        "/bin/bash",
+        "-c",
+        "kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic db.public.events --partitions 1 --replication-factor 1 && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ticketify.bookings --partitions 1 --replication-factor 1 && echo 'Topicos criados com sucesso'",
+      ]
     restart: on-failure
 
   # ─── Debezium Kafka Connect ─────────────────────────────────────────────────
@@ -206,7 +231,12 @@ services:
         condition: service_healthy
     volumes:
       - ../debezium:/debezium
-    entrypoint: ["sh", "-c", "curl -sf -X POST http://debezium:8083/connectors -H 'Content-Type: application/json' -d @/debezium/postgres-connector.json && echo 'Conector registrado com sucesso'"]
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "curl -sf -X POST http://debezium:8083/connectors -H 'Content-Type: application/json' -d @/debezium/postgres-connector.json && echo 'Conector registrado com sucesso'",
+      ]
     restart: on-failure
 
   # ─── MinIO ──────────────────────────────────────────────────────────────────
@@ -348,8 +378,9 @@ services:
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3001
+
       DB_HOST: postgres-auth
       DB_PORT: 5432
       DB_NAME: auth_db
@@ -361,6 +392,52 @@ services:
       JWT_REFRESH_EXPIRES_IN: "7"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: auth-service
+    volumes:
+      - ../../apps/auth-service/src:/app/src
+      - /app/node_modules
+    restart: unless-stopped
+
+  # ─── Event Service (Laravel) ────────────────────────────────────────────────
+  event-service:
+    build:
+      context: ../../apps/event-service
+      dockerfile: Dockerfile
+    container_name: event-service
+    depends_on:
+      postgres-event:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../apps/event-service/app:/app/app
+      - ../../apps/event-service/routes:/app/routes
+      - ../../apps/event-service/config:/app/config
+      - ../../apps/event-service/database:/app/database
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: base64:u8GaQtK3zqnEvroRIV2BkWvZFCBUPO/aA6D9uCrB2KM=
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres-event
+      DB_PORT: 5432
+      DB_DATABASE: event_db
+      DB_USERNAME: event_user
+      DB_PASSWORD: event_pass
+      CACHE_STORE: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FILESYSTEM_DISK: s3
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: ticketify-media
+      AWS_ENDPOINT: http://minio:9000
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      AWS_URL: http://localhost:9000/ticketify-media
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: event-service
     restart: unless-stopped
 
   # ─── Search Service ─────────────────────────────────────────────────────────
@@ -371,6 +448,7 @@ services:
     image: ticketify-search-service:latest
     pull_policy: build
     container_name: search-service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8010:8000"
     environment:
@@ -378,9 +456,58 @@ services:
       ELASTICSEARCH_INDEX: events
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       SERVICE_NAME: search-service
+    volumes:
+      - ../../apps/search-service:/app
     depends_on:
       elasticsearch:
         condition: service_healthy
+    restart: unless-stopped
+
+  # ─── CDC Service (Spring Boot) ──────────────────────────────────────────────
+  cdc-service:
+    build:
+      context: ../../apps/cdc-service
+      dockerfile: Dockerfile
+    container_name: cdc-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX: events
+      KAFKA_TOPIC_EVENTS: db.public.events
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_SERVICE_NAME: cdc-service
+    restart: unless-stopped
+
+  # ─── Frontend (Next.js) ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:3001
+      EVENT_SERVICE_URL: http://event-service:8080
+      SEARCH_SERVICE_URL: http://search-service:8000
+    volumes:
+      - ../../frontend/src:/app/src
+      - ../../frontend/public:/app/public
+      - ../../frontend/next.config.ts:/app/next.config.ts
+      - ../../frontend/tailwind.config.ts:/app/tailwind.config.ts
+      - ../../frontend/tsconfig.json:/app/tsconfig.json
+      - ../../frontend/postcss.config.mjs:/app/postcss.config.mjs
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - auth-service
+      - event-service
+      - search-service
     restart: unless-stopped
 
   # ─── Kong Deck: aplica kong.yml via Admin API após Kong subir ────────────────
