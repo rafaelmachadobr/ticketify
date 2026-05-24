@@ -159,6 +159,16 @@ services:
       timeout: 10s
       retries: 10
 
+  # ─── Kafka Init: cria tópicos ────────────────────────────────────────────────
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c", "kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic db.public.events --partitions 1 --replication-factor 1 && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ticketify.bookings --partitions 1 --replication-factor 1 && echo 'Topicos criados com sucesso'"]
+    restart: on-failure
+
   # ─── Debezium Kafka Connect ─────────────────────────────────────────────────
   debezium:
     image: debezium/connect:2.6
@@ -186,6 +196,18 @@ services:
       interval: 20s
       timeout: 10s
       retries: 10
+
+  # ─── Debezium Init: registra conector ────────────────────────────────────────
+  debezium-init:
+    image: curlimages/curl:8.7.1
+    container_name: debezium-init
+    depends_on:
+      debezium:
+        condition: service_healthy
+    volumes:
+      - ../debezium:/debezium
+    entrypoint: ["sh", "-c", "curl -sf -X POST http://debezium:8083/connectors -H 'Content-Type: application/json' -d @/debezium/postgres-connector.json && echo 'Conector registrado com sucesso'"]
+    restart: on-failure
 
   # ─── MinIO ──────────────────────────────────────────────────────────────────
   minio:
