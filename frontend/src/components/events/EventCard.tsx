@@ -14,10 +14,14 @@ export function EventCard({ event, className }: EventCardProps) {
       <div className="bg-white rounded-[8px] border border-[#e5e7eb] overflow-hidden transition-shadow group-hover:shadow-md">
         {/* Image com overlay */}
         <div className="relative h-48 overflow-hidden">
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-            style={{ backgroundImage: `url(${event.imageUrl})` }}
-          />
+          {event.imageUrl ? (
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+              style={{ backgroundImage: `url(${event.imageUrl})` }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 transition-transform duration-300 group-hover:scale-105" />
+          )}
           {/* Gradiente overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 

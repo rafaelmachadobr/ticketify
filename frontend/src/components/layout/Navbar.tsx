@@ -3,9 +3,10 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, useRef, useEffect } from "react"
-import { Search, Ticket, User, ChevronDown, LogOut, Bookmark, UserCircle } from "lucide-react"
+import { Ticket, User, ChevronDown, LogOut, Bookmark, UserCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
+import { SearchBar } from "@/components/layout/SearchBar"
 
 export function Navbar() {
   const { user, logout } = useAuth()
@@ -40,16 +41,7 @@ export function Navbar() {
         </Link>
 
         {/* Search bar centralizada */}
-        <div className="flex-1 max-w-xl mx-auto">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]" />
-            <input
-              type="text"
-              placeholder="Buscar eventos, artistas, locais..."
-              className="w-full pl-9 pr-4 h-10 rounded-[8px] border border-[#e5e7eb] bg-[#f3f4f6] text-sm text-[#111827] placeholder:text-[#6b7280] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
-            />
-          </div>
-        </div>
+        <SearchBar />
 
         {/* Controles à direita */}
         <div className="flex items-center gap-2 shrink-0">
