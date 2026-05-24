@@ -1,0 +1,130 @@
+@base = http://localhost:8080/api
+@admin_header = X-User-Role: admin
+
+### ─── Health ────────────────────────────────────────────────
+
+GET http://localhost:8080/up
+
+### ─── GET /events (listagem paginada) ──────────────────────
+
+GET {{base}}/events
+Accept: application/json
+
+### GET /events com paginação
+
+GET {{base}}/events?page=1&limit=5
+Accept: application/json
+
+### GET /events com filtro de categoria
+
+GET {{base}}/events?category=Shows
+Accept: application/json
+
+### GET /events com filtro de cidade
+
+GET {{base}}/events?city=São Paulo
+Accept: application/json
+
+### ─── GET /events/:id (detalhe) ────────────────────────────
+
+# Substitua pelo ID retornado no POST abaixo
+@event_id = 019e5a7a-2f1f-710b-86f5-02239ff58bfe
+
+GET {{base}}/events/{{event_id}}
+Accept: application/json
+
+### GET /events/:id — evento inexistente (espera 404)
+
+GET {{base}}/events/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+### ─── POST /events (admin) ─────────────────────────────────
+
+POST {{base}}/events
+Accept: application/json
+Content-Type: application/json
+{{admin_header}}
+
+{
+  "title": "Rock in Rio 2026",
+  "description": "O maior festival de música do mundo de volta ao Brasil.",
+  "venue": "Cidade do Rock",
+  "city": "Rio de Janeiro",
+  "category": "Shows",
+  "date_from": "2026-09-26T20:00:00Z",
+  "date_to": "2026-09-26T23:59:00Z",
+  "gates_open": "2026-09-26T16:00:00Z",
+  "published": true,
+  "seat_sections": [
+    { "name": "Pista", "capacity": 500, "price": 250.00 },
+    { "name": "Camarote", "capacity": 100, "price": 800.00 }
+  ]
+}
+
+### POST /events — sem autenticação (espera 403)
+
+POST {{base}}/events
+Accept: application/json
+Content-Type: application/json
+
+{
+  "title": "Evento sem permissão"
+}
+
+### POST /events — payload inválido (espera 422)
+
+POST {{base}}/events
+Accept: application/json
+Content-Type: application/json
+{{admin_header}}
+
+{
+  "title": "Sem venue nem data"
+}
+
+### ─── PUT /events/:id (admin) ──────────────────────────────
+
+PUT {{base}}/events/{{event_id}}
+Accept: application/json
+Content-Type: application/json
+{{admin_header}}
+
+{
+  "title": "Rock in Rio 2026 — Atualizado",
+  "published": true
+}
+
+### PUT /events/:id — sem autenticação (espera 403)
+
+PUT {{base}}/events/{{event_id}}
+Accept: application/json
+Content-Type: application/json
+
+{
+  "title": "Tentativa sem permissão"
+}
+
+### ─── POST /events/:id/image (admin) ───────────────────────
+
+# Use o REST Client do VS Code para enviar multipart/form-data
+# POST {{base}}/events/{{event_id}}/image
+# Content-Type: multipart/form-data; boundary=boundary
+# {{admin_header}}
+#
+# --boundary
+# Content-Disposition: form-data; name="image"; filename="cover.jpg"
+# Content-Type: image/jpeg
+#
+# < ./cover.jpg
+# --boundary--
+
+### ─── DELETE /events/:id (admin) ──────────────────────────
+
+DELETE {{base}}/events/{{event_id}}
+Accept: application/json
+{{admin_header}}
+
+### DELETE — sem autenticação (espera 403)
+
+DELETE {{base}}/events/{{event_id}}
+Accept: application/json

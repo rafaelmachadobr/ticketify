@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import { cookies } from "next/headers"
 import "./globals.css"
-import { Navbar } from "@/components/layout/Navbar"
-import { Footer } from "@/components/layout/Footer"
 import { AuthProvider } from "@/contexts/AuthContext"
+import type { User } from "@/types"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -15,18 +15,35 @@ export const metadata: Metadata = {
   description: "Compre ingressos para shows, teatro, esportes e muito mais.",
 }
 
-export default function RootLayout({
+const AUTH_SERVICE = process.env.AUTH_SERVICE_URL ?? "http://localhost:3001"
+
+async function getSessionUser(): Promise<User | null> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get("access_token")?.value
+  if (!token) return null
+  try {
+    const res = await fetch(`${AUTH_SERVICE}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    })
+    return res.ok ? res.json() : null
+  } catch {
+    return null
+  }
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const initialUser = await getSessionUser()
+
   return (
     <html lang="pt-BR" className={`${inter.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-[#f3f4f6]">
-        <AuthProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+      <body className="h-full bg-[#f3f4f6]" suppressHydrationWarning>
+        <AuthProvider initialUser={initialUser}>
+          {children}
         </AuthProvider>
       </body>
     </html>

@@ -1,0 +1,27 @@
+{
+  "name": "postgres-event-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres-event",
+    "database.port": "5432",
+    "database.user": "event_user",
+    "database.password": "event_pass",
+    "database.dbname": "event_db",
+    "topic.prefix": "db",
+    "table.include.list": "public.events,public.seat_sections,public.seats",
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_slot",
+    "publication.name": "debezium_publication",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.add.fields": "op,table,source.ts_ms",
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+    "transforms.unwrap.drop.tombstones": "false",
+    "decimal.handling.mode": "double",
+    "snapshot.mode": "always"
+  }
+}
