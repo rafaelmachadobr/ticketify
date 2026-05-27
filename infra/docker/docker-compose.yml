@@ -4,9 +4,9 @@ services:
     image: postgres:16-alpine
     container_name: postgres-auth
     environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: auth_user
-      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: ${POSTGRES_AUTH_DB}
+      POSTGRES_USER: ${POSTGRES_AUTH_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
     ports:
       - "5435:5432"
     volumes:
@@ -17,7 +17,7 @@ services:
         -c max_replication_slots=4
         -c max_wal_senders=4
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER} -d ${POSTGRES_AUTH_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,9 +27,9 @@ services:
     image: postgres:16-alpine
     container_name: postgres-event
     environment:
-      POSTGRES_DB: event_db
-      POSTGRES_USER: event_user
-      POSTGRES_PASSWORD: event_pass
+      POSTGRES_DB: ${POSTGRES_EVENT_DB}
+      POSTGRES_USER: ${POSTGRES_EVENT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_EVENT_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
@@ -40,7 +40,7 @@ services:
         -c max_replication_slots=4
         -c max_wal_senders=4
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U event_user -d event_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_EVENT_USER} -d ${POSTGRES_EVENT_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,15 +50,15 @@ services:
     image: postgres:16-alpine
     container_name: postgres-booking
     environment:
-      POSTGRES_DB: booking_db
-      POSTGRES_USER: booking_user
-      POSTGRES_PASSWORD: booking_pass
+      POSTGRES_DB: ${POSTGRES_BOOKING_DB}
+      POSTGRES_USER: ${POSTGRES_BOOKING_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_BOOKING_PASSWORD}
     ports:
       - "5434:5432"
     volumes:
       - postgres_booking_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U booking_user -d booking_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_BOOKING_USER} -d ${POSTGRES_BOOKING_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -82,8 +82,8 @@ services:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_CLIENT_PORT}
+      ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_TICK_TIME}
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_log:/var/lib/zookeeper/log
@@ -111,14 +111,14 @@ services:
       - "9092:9092"
       - "9093:9093"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID}
+      KAFKA_ZOOKEEPER_CONNECT: ${KAFKA_ZOOKEEPER_CONNECT}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE}
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
@@ -139,10 +139,10 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
     container_name: elasticsearch
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - xpack.security.enrollment.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - discovery.type=${ES_DISCOVERY_TYPE}
+      - xpack.security.enabled=${ES_XPACK_SECURITY_ENABLED}
+      - xpack.security.enrollment.enabled=${ES_XPACK_SECURITY_ENROLLMENT_ENABLED}
+      - ES_JAVA_OPTS=${ES_JAVA_OPTS}
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -153,27 +153,6 @@ services:
         [
           "CMD-SHELL",
           'curl -sf http://localhost:9200/_cluster/health | grep -qv ''"status":"red"''',
-        ]
-      interval: 20s
-      timeout: 10s
-      retries: 10
-
-  # ─── Kibana ─────────────────────────────────────────────────────────────────
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.13.4
-    container_name: kibana
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -sf http://localhost:5601/api/status | grep -q 'available'",
         ]
       interval: 20s
       timeout: 10s
@@ -206,16 +185,16 @@ services:
     ports:
       - "8083:8083"
     environment:
-      BOOTSTRAP_SERVERS: kafka:29092
-      GROUP_ID: debezium-connect
-      CONFIG_STORAGE_TOPIC: debezium.configs
-      OFFSET_STORAGE_TOPIC: debezium.offsets
-      STATUS_STORAGE_TOPIC: debezium.statuses
-      CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      STATUS_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      BOOTSTRAP_SERVERS: ${DEBEZIUM_BOOTSTRAP_SERVERS}
+      GROUP_ID: ${DEBEZIUM_GROUP_ID}
+      CONFIG_STORAGE_TOPIC: ${DEBEZIUM_CONFIG_STORAGE_TOPIC}
+      OFFSET_STORAGE_TOPIC: ${DEBEZIUM_OFFSET_STORAGE_TOPIC}
+      STATUS_STORAGE_TOPIC: ${DEBEZIUM_STATUS_STORAGE_TOPIC}
+      CONFIG_STORAGE_REPLICATION_FACTOR: ${DEBEZIUM_CONFIG_STORAGE_REPLICATION_FACTOR}
+      OFFSET_STORAGE_REPLICATION_FACTOR: ${DEBEZIUM_OFFSET_STORAGE_REPLICATION_FACTOR}
+      STATUS_STORAGE_REPLICATION_FACTOR: ${DEBEZIUM_STATUS_STORAGE_REPLICATION_FACTOR}
+      CONNECT_KEY_CONVERTER: ${DEBEZIUM_CONNECT_KEY_CONVERTER}
+      CONNECT_VALUE_CONVERTER: ${DEBEZIUM_CONNECT_VALUE_CONVERTER}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors"]
       interval: 20s
@@ -247,8 +226,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -267,7 +246,7 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
         mc mb --ignore-existing local/ticketify-media &&
         mc anonymous set download local/ticketify-media &&
         echo 'Bucket ticketify-media criado com sucesso'
@@ -284,7 +263,7 @@ services:
       - "4318:4318"
       - "14268:14268"
     environment:
-      COLLECTOR_OTLP_ENABLED: "true"
+      COLLECTOR_OTLP_ENABLED: ${JAEGER_COLLECTOR_OTLP_ENABLED}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:16686/ > /dev/null"]
       interval: 10s
@@ -296,13 +275,13 @@ services:
     image: postgres:16-alpine
     container_name: postgres-kong
     environment:
-      POSTGRES_DB: kong_db
-      POSTGRES_USER: kong_user
-      POSTGRES_PASSWORD: kong_pass
+      POSTGRES_DB: ${POSTGRES_KONG_DB}
+      POSTGRES_USER: ${POSTGRES_KONG_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_KONG_PASSWORD}
     volumes:
       - postgres_kong_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kong_user -d kong_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_KONG_USER} -d ${POSTGRES_KONG_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -318,9 +297,9 @@ services:
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres-kong
-      KONG_PG_DATABASE: kong_db
-      KONG_PG_USER: kong_user
-      KONG_PG_PASSWORD: kong_pass
+      KONG_PG_DATABASE: ${POSTGRES_KONG_DB}
+      KONG_PG_USER: ${POSTGRES_KONG_USER}
+      KONG_PG_PASSWORD: ${POSTGRES_KONG_PASSWORD}
     command: kong migrations bootstrap
     restart: on-failure
 
@@ -348,9 +327,9 @@ services:
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres-kong
-      KONG_PG_DATABASE: kong_db
-      KONG_PG_USER: kong_user
-      KONG_PG_PASSWORD: kong_pass
+      KONG_PG_DATABASE: ${POSTGRES_KONG_DB}
+      KONG_PG_USER: ${POSTGRES_KONG_USER}
+      KONG_PG_PASSWORD: ${POSTGRES_KONG_PASSWORD}
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -358,8 +337,8 @@ services:
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
       KONG_PROXY_LISTEN: 0.0.0.0:8000
       KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
-      KONG_ADMIN_GUI_URL: http://localhost:8002
-      KONG_PLUGINS: bundled,jwt-claims-injector
+      KONG_ADMIN_GUI_URL: ${KONG_ADMIN_GUI_URL}
+      KONG_PLUGINS: ${KONG_PLUGINS}
     healthcheck:
       test: ["CMD-SHELL", "kong health"]
       interval: 10s
@@ -378,20 +357,19 @@ services:
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: development
-      PORT: 3001
-
+      NODE_ENV: ${AUTH_NODE_ENV}
+      PORT: ${AUTH_PORT}
       DB_HOST: postgres-auth
       DB_PORT: 5432
-      DB_NAME: auth_db
-      DB_USER: auth_user
-      DB_PASS: auth_pass
-      JWT_PRIVATE_KEY_PATH: ./keys/private.pem
-      JWT_PUBLIC_KEY_PATH: ./keys/public.pem
-      JWT_ACCESS_EXPIRES_IN: 15m
-      JWT_REFRESH_EXPIRES_IN: "7"
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
-      OTEL_SERVICE_NAME: auth-service
+      DB_NAME: ${POSTGRES_AUTH_DB}
+      DB_USER: ${POSTGRES_AUTH_USER}
+      DB_PASS: ${POSTGRES_AUTH_PASSWORD}
+      JWT_PRIVATE_KEY_PATH: ${AUTH_JWT_PRIVATE_KEY_PATH}
+      JWT_PUBLIC_KEY_PATH: ${AUTH_JWT_PUBLIC_KEY_PATH}
+      JWT_ACCESS_EXPIRES_IN: ${AUTH_JWT_ACCESS_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${AUTH_JWT_REFRESH_EXPIRES_IN}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT_HTTP}
+      OTEL_SERVICE_NAME: ${AUTH_OTEL_SERVICE_NAME}
     volumes:
       - ../../apps/auth-service/src:/app/src
       - /app/node_modules
@@ -416,28 +394,28 @@ services:
       - ../../apps/event-service/config:/app/config
       - ../../apps/event-service/database:/app/database
     environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
-      APP_KEY: base64:u8GaQtK3zqnEvroRIV2BkWvZFCBUPO/aA6D9uCrB2KM=
-      DB_CONNECTION: pgsql
+      APP_ENV: ${EVENT_APP_ENV}
+      APP_DEBUG: ${EVENT_APP_DEBUG}
+      APP_KEY: ${EVENT_SERVICE_APP_KEY}
+      DB_CONNECTION: ${EVENT_DB_CONNECTION}
       DB_HOST: postgres-event
       DB_PORT: 5432
-      DB_DATABASE: event_db
-      DB_USERNAME: event_user
-      DB_PASSWORD: event_pass
-      CACHE_STORE: redis
+      DB_DATABASE: ${POSTGRES_EVENT_DB}
+      DB_USERNAME: ${POSTGRES_EVENT_USER}
+      DB_PASSWORD: ${POSTGRES_EVENT_PASSWORD}
+      CACHE_STORE: ${EVENT_CACHE_STORE}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      FILESYSTEM_DISK: s3
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_DEFAULT_REGION: us-east-1
-      AWS_BUCKET: ticketify-media
-      AWS_ENDPOINT: http://minio:9000
-      AWS_USE_PATH_STYLE_ENDPOINT: "true"
-      AWS_URL: http://localhost:9000/ticketify-media
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
-      OTEL_SERVICE_NAME: event-service
+      FILESYSTEM_DISK: ${EVENT_FILESYSTEM_DISK}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_DEFAULT_REGION: ${EVENT_AWS_DEFAULT_REGION}
+      AWS_BUCKET: ${EVENT_AWS_BUCKET}
+      AWS_ENDPOINT: ${EVENT_AWS_ENDPOINT}
+      AWS_USE_PATH_STYLE_ENDPOINT: ${EVENT_AWS_USE_PATH_STYLE_ENDPOINT}
+      AWS_URL: ${EVENT_AWS_URL}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT_HTTP}
+      OTEL_SERVICE_NAME: ${EVENT_OTEL_SERVICE_NAME}
     restart: unless-stopped
 
   # ─── Search Service ─────────────────────────────────────────────────────────
@@ -452,10 +430,10 @@ services:
     ports:
       - "8010:8000"
     environment:
-      ELASTICSEARCH_URL: http://elasticsearch:9200
-      ELASTICSEARCH_INDEX: events
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
-      SERVICE_NAME: search-service
+      ELASTICSEARCH_URL: ${SEARCH_ELASTICSEARCH_URL}
+      ELASTICSEARCH_INDEX: ${SEARCH_ELASTICSEARCH_INDEX}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT_GRPC}
+      SERVICE_NAME: ${SEARCH_OTEL_SERVICE_NAME}
     volumes:
       - ../../apps/search-service:/app
     depends_on:
@@ -475,14 +453,14 @@ services:
       elasticsearch:
         condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      ELASTICSEARCH_URL: http://elasticsearch:9200
-      ELASTICSEARCH_INDEX: events
-      KAFKA_TOPIC_EVENTS: db.public.events
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
-      OTEL_SERVICE_NAME: cdc-service
-      OTEL_METRICS_EXPORTER: none
-      OTEL_LOGS_EXPORTER: none
+      KAFKA_BOOTSTRAP_SERVERS: ${CDC_KAFKA_BOOTSTRAP_SERVERS}
+      ELASTICSEARCH_URL: ${CDC_ELASTICSEARCH_URL}
+      ELASTICSEARCH_INDEX: ${CDC_ELASTICSEARCH_INDEX}
+      KAFKA_TOPIC_EVENTS: ${CDC_KAFKA_TOPIC_EVENTS}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT_GRPC}
+      OTEL_SERVICE_NAME: ${CDC_OTEL_SERVICE_NAME}
+      OTEL_METRICS_EXPORTER: ${CDC_OTEL_METRICS_EXPORTER}
+      OTEL_LOGS_EXPORTER: ${CDC_OTEL_LOGS_EXPORTER}
     restart: unless-stopped
 
   # ─── Frontend (Next.js) ─────────────────────────────────────────────────────
@@ -494,9 +472,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      AUTH_SERVICE_URL: http://auth-service:3001
-      EVENT_SERVICE_URL: http://event-service:8080
-      SEARCH_SERVICE_URL: http://search-service:8000
+      AUTH_SERVICE_URL: ${FRONTEND_AUTH_SERVICE_URL}
+      EVENT_SERVICE_URL: ${FRONTEND_EVENT_SERVICE_URL}
+      SEARCH_SERVICE_URL: ${FRONTEND_SEARCH_SERVICE_URL}
     volumes:
       - ../../frontend/src:/app/src
       - ../../frontend/public:/app/public
