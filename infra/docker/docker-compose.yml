@@ -211,11 +211,22 @@ services:
     volumes:
       - ../debezium:/debezium
     entrypoint:
-      [
-        "sh",
-        "-c",
-        "curl -sf -X POST http://debezium:8083/connectors -H 'Content-Type: application/json' -d @/debezium/postgres-connector.json && echo 'Conector registrado com sucesso'",
-      ]
+      - sh
+      - -c
+      - |
+        HTTP=$(curl -s -o /tmp/res.txt -w '%{http_code}' \
+          -X POST http://debezium:8083/connectors \
+          -H 'Content-Type: application/json' \
+          -d @/debezium/postgres-connector.json)
+        if [ "$HTTP" = "201" ]; then
+          echo "Conector registrado com sucesso"
+        elif [ "$HTTP" = "409" ]; then
+          echo "Conector ja existe, nada a fazer"
+        else
+          echo "Falha ao registrar conector: HTTP $HTTP"
+          cat /tmp/res.txt
+          exit 1
+        fi
     restart: on-failure
 
   # ─── MinIO ──────────────────────────────────────────────────────────────────
