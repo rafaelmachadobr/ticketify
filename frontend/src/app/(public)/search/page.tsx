@@ -1,5 +1,5 @@
 import { EventCard } from "@/components/events/EventCard"
-import { EventsPagination } from "@/app/events/EventsPagination"
+import { EventsPagination } from "@/app/(public)/events/EventsPagination"
 import { mapApiEvent } from "@/lib/utils"
 
 const SEARCH_SERVICE = process.env.SEARCH_SERVICE_URL ?? "http://localhost:8000"
