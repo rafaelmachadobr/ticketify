@@ -5,7 +5,6 @@ import {
   mapApiEvent,
 } from "@/lib/utils";
 import {
-  ArrowLeft,
   Calendar,
   Clock,
   Heart,
@@ -14,6 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { BackButton } from "@/components/events/BackButton";
 import { notFound } from "next/navigation";
 
 const EVENT_SERVICE = process.env.EVENT_SERVICE_URL ?? "http://localhost:8080";
@@ -65,13 +65,7 @@ export default async function EventDetailPage({
 
         {/* Back + actions */}
         <div className="absolute top-4 left-0 right-0 max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <Link
-            href="/events"
-            className="flex items-center gap-1.5 text-white/90 hover:text-white text-sm font-medium transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar
-          </Link>
+          <BackButton className="flex items-center gap-1.5 text-white/90 hover:text-white text-sm font-medium transition-colors" />
           <div className="flex items-center gap-2">
             <button className="bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors">
               <Share2 className="w-4 h-4" />

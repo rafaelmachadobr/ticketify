@@ -5,6 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Ticket } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { PasswordInput } from "@/components/ui/password-input"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function RegisterPage() {
@@ -91,13 +92,11 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium text-[#111827] mb-1.5">
                 Senha
               </label>
-              <input
+              <PasswordInput
                 name="password"
-                type="password"
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="w-full h-10 px-3 rounded-[8px] border border-[#e5e7eb] text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent placeholder:text-[#9ca3af]"
                 placeholder="Mínimo 8 caracteres"
               />
             </div>
@@ -106,12 +105,10 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium text-[#111827] mb-1.5">
                 Confirmar senha
               </label>
-              <input
+              <PasswordInput
                 name="confirm"
-                type="password"
                 required
                 autoComplete="new-password"
-                className="w-full h-10 px-3 rounded-[8px] border border-[#e5e7eb] text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent placeholder:text-[#9ca3af]"
                 placeholder="••••••••"
               />
             </div>
