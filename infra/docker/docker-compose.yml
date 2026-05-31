@@ -350,6 +350,8 @@ services:
       KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
       KONG_ADMIN_GUI_URL: ${KONG_ADMIN_GUI_URL}
       KONG_PLUGINS: ${KONG_PLUGINS}
+      KONG_TRACING_INSTRUMENTATIONS: all
+      KONG_TRACING_SAMPLING_RATE: "1.0"
     healthcheck:
       test: ["CMD-SHELL", "kong health"]
       interval: 10s
