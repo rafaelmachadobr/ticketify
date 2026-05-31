@@ -545,6 +545,7 @@ services:
       gateway sync /etc/kong/kong.yml
         --kong-addr http://kong:8001
         --skip-ca-certificates
+        --skip-consumers
     restart: on-failure
 
   # ─── Kong JWT Setup: registra consumer + credencial RS256 a partir do public.pem ──

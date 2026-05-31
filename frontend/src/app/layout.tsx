@@ -26,7 +26,8 @@ async function getSessionUser(): Promise<User | null> {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     })
-    return res.ok ? res.json() : null
+    if (!res.ok) return null
+    return await res.json()
   } catch {
     return null
   }

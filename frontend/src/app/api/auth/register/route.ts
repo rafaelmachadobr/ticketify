@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify(body),
   })
 
-  const json = await res.json()
+  let json: any
+  try { json = await res.json() } catch { json = {} }
   if (!res.ok) return NextResponse.json(json, { status: res.status })
 
   await setAuthCookies(json.accessToken, json.refreshToken)

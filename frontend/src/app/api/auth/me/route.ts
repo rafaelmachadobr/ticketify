@@ -13,5 +13,9 @@ export async function GET() {
   })
 
   if (!res.ok) return NextResponse.json(null, { status: 401 })
-  return NextResponse.json(await res.json())
+  try {
+    return NextResponse.json(await res.json())
+  } catch {
+    return NextResponse.json(null, { status: 401 })
+  }
 }
