@@ -9,9 +9,10 @@ const MONTHS_SHORT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out
 const MONTHS_LONG = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"]
 const WEEKDAYS = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"]
 
-export function formatCurrency(value: number): string {
-  if (!value || isNaN(value)) return "—"
-  return "R$ " + value.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+export function formatCurrency(value: number | string | null | undefined): string {
+  const n = typeof value === "string" ? parseFloat(value) : Number(value)
+  if (!n || isNaN(n)) return "—"
+  return "R$ " + n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")
 }
 
 export function formatDateShort(dateString: string): string {
