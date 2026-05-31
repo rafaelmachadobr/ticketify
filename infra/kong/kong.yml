@@ -46,6 +46,9 @@ services:
 # ─── Plugins Globais ─────────────────────────────────────────────────────────
 
 plugins:
+  # Extrai claims do JWT e injeta X-User-Id, X-User-Email, X-User-Role nos headers downstream
+  - name: jwt-claims-injector
+
   # Rate limiting global: 100 req/min por IP (anônimos)
   - name: rate-limiting
     config:
