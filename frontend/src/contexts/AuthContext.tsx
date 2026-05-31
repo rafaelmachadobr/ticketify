@@ -27,7 +27,19 @@ export function AuthProvider({
     if (initialUser !== null) return
     setLoading(true)
     fetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.status === 401) {
+          const path = window.location.pathname
+          const isProtected = ["/bookings", "/profile", "/checkout", "/admin"].some(
+            (p) => path.startsWith(p)
+          ) || /^\/events\/[^/]+\/seats/.test(path)
+          if (isProtected) {
+            window.location.href = `/login?next=${encodeURIComponent(path)}`
+          }
+          return null
+        }
+        return r.ok ? r.json() : null
+      })
       .then((u) => setUser(u))
       .finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

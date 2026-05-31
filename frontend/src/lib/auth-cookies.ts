@@ -36,3 +36,15 @@ export async function clearAuthCookies() {
   cookieStore.delete(ACCESS_COOKIE)
   cookieStore.delete(REFRESH_COOKIE)
 }
+
+/** Decodes the JWT payload and returns the user ID (sub claim). No signature verification — Kong already validated the token. */
+export function getUserIdFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64url").toString("utf8")
+    )
+    return payload.sub ?? null
+  } catch {
+    return null
+  }
+}
