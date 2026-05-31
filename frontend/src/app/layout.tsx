@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import { cookies } from "next/headers"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
+import { Toaster } from "@/components/ui/sonner"
 import type { User } from "@/types"
 
 const inter = Inter({
@@ -45,6 +46,7 @@ export default async function RootLayout({
       <body className="h-full bg-[#f3f4f6]" suppressHydrationWarning>
         <AuthProvider initialUser={initialUser}>
           {children}
+          <Toaster richColors />
         </AuthProvider>
       </body>
     </html>

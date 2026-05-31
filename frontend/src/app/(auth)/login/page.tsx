@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Ticket } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PasswordInput } from "@/components/ui/password-input"
+import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function LoginPage() {
@@ -26,10 +27,12 @@ export default function LoginPage() {
 
     try {
       await login(email, password)
+      toast.success("Login realizado com sucesso!")
       const next = searchParams.get("next") ?? "/"
       router.push(next)
     } catch (err: any) {
       setError(err.message)
+      toast.error("Falha no login", { description: err.message })
     } finally {
       setLoading(false)
     }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Calendar } from "lucide-react"
+import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -120,11 +121,16 @@ export default function SeatsPage() {
         body: JSON.stringify({ event_id: event.id, seat_id: seat.id }),
       })
       if (res.status === 409) {
-        alert("Este assento acabou de ser reservado por outro usuário.")
+        toast.warning("Assento indisponível", {
+          description: "Este assento acabou de ser reservado por outro usuário.",
+        })
         return
       }
       if (!res.ok) throw new Error()
       const { token } = await res.json()
+      toast.success("Assento reservado!", {
+        description: "Você tem 7 minutos para concluir a compra.",
+      })
       const sec = event.seat_sections.find((s) => s.id === seat.sectionId)
       const params = new URLSearchParams({
         event_id: event.id,
@@ -134,7 +140,9 @@ export default function SeatsPage() {
       })
       router.push(`/checkout/${token}?${params.toString()}`)
     } catch {
-      alert("Erro ao reservar. Tente novamente.")
+      toast.error("Erro ao reservar", {
+        description: "Tente novamente em instantes.",
+      })
     } finally {
       setReserving(false)
     }

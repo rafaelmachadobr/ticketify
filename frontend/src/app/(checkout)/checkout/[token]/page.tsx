@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, ShieldCheck, Clock } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
+import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 
 const CHECKOUT_TTL = 7 * 60
@@ -175,14 +176,19 @@ export default function CheckoutPage() {
         body: JSON.stringify({ reservation_token: token }),
       })
       if (!res.ok) {
-        const err = await res.json()
-        alert(err.error ?? "Erro ao confirmar. Tente novamente.")
+        const err = await res.json().catch(() => ({}))
+        toast.error("Erro ao confirmar compra", {
+          description: err.error ?? "Tente novamente em instantes.",
+        })
         return
       }
       const { booking_id } = await res.json()
+      toast.success("Compra confirmada!")
       router.push(`/bookings/${booking_id}/confirmation`)
     } catch {
-      alert("Erro ao confirmar compra. Tente novamente.")
+      toast.error("Erro ao confirmar compra", {
+        description: "Verifique sua conexão e tente novamente.",
+      })
     } finally {
       setConfirming(false)
     }
@@ -388,7 +394,10 @@ export default function CheckoutPage() {
                   <code className="text-xs text-[#374151] truncate">{pixKey}</code>
                   <button
                     type="button"
-                    onClick={() => navigator.clipboard.writeText(pixKey)}
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixKey)
+                      toast.success("Chave Pix copiada!")
+                    }}
                     className="text-xs text-[#2563EB] font-semibold shrink-0"
                   >
                     Copiar

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Ticket } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PasswordInput } from "@/components/ui/password-input"
+import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function RegisterPage() {
@@ -24,15 +25,18 @@ export default function RegisterPage() {
 
     if (password !== confirm) {
       setError("As senhas não coincidem")
+      toast.error("As senhas não coincidem")
       return
     }
 
     setLoading(true)
     try {
       await register(data.get("name") as string, data.get("email") as string, password)
+      toast.success("Conta criada com sucesso!", { description: "Bem-vindo ao Ticketify!" })
       router.push("/")
     } catch (err: any) {
       setError(err.message)
+      toast.error("Erro ao criar conta", { description: err.message })
     } finally {
       setLoading(false)
     }

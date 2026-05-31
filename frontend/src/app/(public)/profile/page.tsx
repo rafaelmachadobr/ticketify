@@ -1,19 +1,16 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 
 export default function ProfilePage() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setError("")
-    setSuccess(false)
     setLoading(true)
 
     const data = new FormData(e.currentTarget)
@@ -29,13 +26,13 @@ export default function ProfilePage() {
       })
 
       if (!res.ok) {
-        const json = await res.json()
+        const json = await res.json().catch(() => ({}))
         throw new Error(json.message ?? "Erro ao atualizar perfil")
       }
 
-      setSuccess(true)
+      toast.success("Perfil atualizado com sucesso!")
     } catch (err: any) {
-      setError(err.message)
+      toast.error("Erro ao atualizar perfil", { description: err.message })
     } finally {
       setLoading(false)
     }
@@ -49,17 +46,6 @@ export default function ProfilePage() {
 
       <div className="max-w-lg">
         <div className="bg-white rounded-[8px] border border-[#e5e7eb] p-6">
-          {success && (
-            <div className="mb-4 p-3 rounded-[8px] bg-green-50 border border-green-200 text-green-700 text-sm">
-              Perfil atualizado com sucesso!
-            </div>
-          )}
-          {error && (
-            <div className="mb-4 p-3 rounded-[8px] bg-red-50 border border-red-200 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#111827] mb-1.5">
