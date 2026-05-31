@@ -547,6 +547,23 @@ services:
         --skip-ca-certificates
     restart: on-failure
 
+  # ─── Kong JWT Setup: registra consumer + credencial RS256 a partir do public.pem ──
+  kong-jwt-setup:
+    image: alpine:3.19
+    container_name: kong-jwt-setup
+    depends_on:
+      kong:
+        condition: service_healthy
+      kong-deck:
+        condition: service_completed_successfully
+    volumes:
+      - ../kong/jwt-setup.sh:/jwt-setup.sh:ro
+      - ../../apps/auth-service/keys/public.pem:/keys/public.pem:ro
+    environment:
+      KONG_ADMIN_URL: http://kong:8001
+    command: sh /jwt-setup.sh
+    restart: on-failure
+
 volumes:
   postgres_auth_data:
   postgres_event_data:

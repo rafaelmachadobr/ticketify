@@ -2,10 +2,6 @@ _format_version: "3.0"
 _transform: true
 
 # ─── Serviços ────────────────────────────────────────────────────────────────
-# Nota: os upstreams apontam para os containers dos microserviços.
-# Enquanto os serviços não estão rodando, o Kong retornará 502 nas rotas,
-# mas os plugins (rate-limiting, OpenTelemetry) são aplicados corretamente.
-
 services:
   - name: auth-service
     url: http://auth-service:3001
@@ -26,6 +22,12 @@ services:
         paths:
           - /admin/events
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
 
   - name: booking-service
     url: http://booking-service:8020
@@ -34,6 +36,12 @@ services:
         paths:
           - /bookings
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
 
   - name: search-service
     url: http://search-service:8000
@@ -67,3 +75,7 @@ plugins:
       sampling_rate: 1.0
       propagation:
         default_format: w3c
+
+# Nota: consumer JWT (ticketify-issuer) e credencial RS256 são registrados
+# dinamicamente pelo serviço kong-jwt-setup, que lê a chave de
+# apps/auth-service/keys/public.pem. Isso evita chave hardcoded aqui.
