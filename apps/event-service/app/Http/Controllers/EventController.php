@@ -57,7 +57,7 @@ class EventController extends Controller
         $cacheKey = "events:detail:{$id}";
 
         $data = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($id) {
-            $event = Event::with(['seatSections'])
+            $event = Event::with(['seatSections.seats'])
                 ->where('published', true)
                 ->find($id);
 
